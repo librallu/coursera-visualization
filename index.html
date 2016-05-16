@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Coursera - Data visualization - Assignment 1</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+        svg {
+          font: 12px sans-serif;
+          shape-rendering: crispEdges;
+          border: 1px solid #ddd;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: grey;
+            stroke-width: 1;
+            shape-rendering: crispEdges;
+        }
+
+        .legend-text {
+            alignment-baseline: baseline;
+        }
+
+        .x-text, .y-text {
+            text-anchor: middle;
+            font-size: 15px;
+        }
+
+        .title {
+            text-anchor: middle;
+            font-size: 20px;
+        }
+
+        .hide {
+            opacity: 0.5;
+        }
+
+        rect {
+            pointer-events: all;
+        }
+
+        .line {
+            opacity: 0.8;
+        }
+
+    </style>
+</head>
+<body>
+
+    <script>
+
+    // Load csv file and call this function when it is done
+    d3.csv("data.csv", function(data) {
+
+        var colors = {
+            'Jan': null,
+            'Feb': null,
+            'Mar': null,
+            'Apr': null,
+            'May': null,
+            'Jun': null,
+            'Jul': null,
+            'Aug': null,
+            'Sep': null,
+            'Oct': null,
+            'Nov': null,
+            'Dec': null,
+            'D-N': null,
+            'DJF': '#e41a1c',
+            'MAM': '#377eb8',
+            'JJA': '#4daf4a',
+            'SON': '#984ea3',
+        }
+
+        var legendText = {
+            'DJF': 'December to February',
+            'MAM': 'March to May',
+            'JJA': 'June to August',
+            'SON': 'September to November',
+        };
+
+        var exhib = function (prop) {
+            for ( i in colors ){
+                if ( colors[i] && i !== prop ) {
+                    var elts = document.querySelectorAll('.data-'+i);
+                    for (var i = 0; i < elts.length; i++) {
+                        elts[i].style.opacity = 0.1;
+                    }
+                }
+            }
+        }
+
+        var unexhib = function () {
+            for ( i in colors ){
+                var elts = document.querySelectorAll('.data-'+i);
+                for (var i = 0; i < elts.length; i++) {
+                    elts[i].style.opacity = .8;
+                }
+            }
+        }
+
+        var width = 800;
+        var height = 500;
+        var padding = 50;
+        var dotsize = 5;
+        var xTitle = 'Years'
+        var yTitle = 'Temperature anomalies'
+        var title = 'Evolution of temperature anomalies over years'
+        var mini = -75;
+        var maxi = 100;
+
+
+        // create canvas with a certain height/width
+        var canvas = d3.select("body").append("svg")
+            .attr('width', width+300)
+            .attr('height', height)
+        ;
+
+        canvas.append('text')
+            .attr('class', 'title')
+            .attr('x', width/2)
+            .attr('y', 30)
+            .text(title);
+
+        var xScale = d3.scale.linear()
+            .domain([
+                data[0].Year,
+                data[data.length-1].Year
+            ])
+            .range([0, width-2*padding])
+        ;
+
+        var yScale = d3.scale.linear()
+            .domain([mini, maxi])
+            .range([height-2*padding, 0])
+        ;
+
+        var xAxis = d3.svg.axis()
+            .scale(xScale)
+            .orient('bottom')
+            .tickFormat(function(d) {
+                return d;
+            })
+            .tickPadding(5)
+            .tickSize(-3)
+        ;
+
+        var yAxis = d3.svg.axis()
+            .scale(yScale)
+            .orient('left')
+            .tickFormat(function(d) {
+                return d;
+            })
+            .tickPadding(5)
+            .tickSize(-3)
+            .ticks(5)
+        ;
+
+        var canvasXAxis = canvas.append('g')
+            .attr("class", "x axis")
+            .attr('transform', 'translate('+padding+', '+(height-padding)+')')
+            .call(xAxis)
+        ;
+        canvasXAxis.append('text')
+            .attr('class', 'x-text')
+            .attr('x', width/2)
+            .attr('y', 35)
+            .text(xTitle)
+        ;
+
+        var canvasYAxis = canvas.append('g')
+            .attr("class", "y axis")
+            .attr('transform', 'translate('+padding+', '+padding+')')
+            .call(yAxis)
+        ;
+        canvasYAxis.append('text')
+            .attr('x', -height/2+50)
+            .attr('y', -30)
+            .attr('class', 'y-text')
+            .attr('transform', 'rotate(270)')
+            .text(yTitle)
+        ;
+
+        var dots = canvas.append('g');
+
+        for ( prop in colors ) {
+            if ( colors[prop] ) {
+                dots.append('g')
+                    .attr('class', 'line data-'+prop)
+                    .attr('transform', 'translate('+padding+', '+padding+')')
+                    .selectAll('circle')
+                    .data(data)
+                    .enter()
+                        .append('circle')
+                        .filter(function(d) { return d[prop] !== '****' })
+                        .attr('cx', function(d) { return xScale(d.Year) })
+                        .attr('cy', function(d) { return yScale(d[prop]) })
+                        .attr('r', dotsize)
+                        .attr("fill", function(d) { return colors[prop] })
+                ;
+            }
+        }
+
+        function createfunc(i) {
+            return function() { exhib(i); };
+        }
+
+        var legend = canvas.append('svg');
+        var i = 0;
+        var squareSize = 30
+        for ( prop in colors ) {
+            if ( colors[prop] ) {
+                var entity = legend.append('g')
+                    .on('mouseover', createfunc(prop))
+                    .on('mouseout', unexhib)
+                ;
+                entity.append('rect')
+                    .attr('width', squareSize)
+                    .attr('height', squareSize)
+                    .attr('x', width+50)
+                    .attr('y', 50+(squareSize+30)*i)
+                    .attr('fill', colors[prop])
+                    .attr('stroke', '#555')
+                i++;
+                entity.append('text')
+                    .attr('class', 'legend-text')
+                    .attr('x', width+60+squareSize)
+                    .attr('y', 15+(squareSize+30)*i)
+                    .text(legendText[prop].toUpperCase())
+                ;
+            }
+        }
+
+    });
+
+    </script>
+</body>
+</html>
